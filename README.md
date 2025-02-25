@@ -1,5 +1,13 @@
 # soldierXR
 
+Commande :
+
+```bash
+ngrok http http://localhost:5173
+```
+
+DuckDuckGo : qr url
+
 Robot VS Michelle:
 Add Robots to have a larger group than Michelle's (dancer) group, and blow up your opponent to move to the next size!
 You can turn on music to enjoy the game more!
