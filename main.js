@@ -14,6 +14,10 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
+import { TTFLoader } from 'three/addons/loaders/TTFLoader.js';
+import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+
 async function setupXR(xrMode) {
 
   if (xrMode !== 'immersive-vr') return;
@@ -71,7 +75,9 @@ const maxBulletDistance = 10;
 let minRadius = 1;
 let maxRadius = 10;
 
-let playerHP = 5;
+let playerHP = 1;
+
+const music = new Audio('assets/audio/music_AoW.mp3');
 
 const init = () => {
   scene = new THREE.Scene();
@@ -140,6 +146,10 @@ const init = () => {
   const xrButton = XRButton.createButton(renderer, {});
   xrButton.style.backgroundColor = 'skyblue';
   document.body.appendChild(xrButton);
+  xrButton.addEventListener('click', () => {
+    music.play();
+  });
+
 
   const controls = new OrbitControls(camera, renderer.domElement);
   //controls.listenToKeyEvents(window); // optional
@@ -289,19 +299,15 @@ function loadRobot(url, count) {
 loadRobot('assets/models/RobotExpressive.glb', 2);
 
 function shootBullet() {
-  // Création de la géométrie et du matériau de la balle
   const bulletGeometry = new THREE.SphereGeometry(0.05, 16, 16);
   const bulletMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
   const bullet = new THREE.Mesh(bulletGeometry, bulletMaterial);
 
-  // Position initiale = position de la caméra
   bullet.position.copy(camera.position);
 
-  // Définir la direction du tir (vers où la caméra regarde)
   const direction = new THREE.Vector3();
   camera.getWorldDirection(direction);
 
-  // Stocker les informations de la balle
   bullets.push({ mesh: bullet, direction, traveledDistance: 0 });
 
   scene.add(bullet);
@@ -327,12 +333,15 @@ function updateBullets() {
   
       enemy.userData.boundingBox.setFromObject(enemy);
       
-      if (bulletBox.intersectsBox(enemy.userData.boundingBox)) {
+      if (bulletBox.intersectsBox(enemy.userData.boundingBox) && !deadRobots.includes(enemy)) {
         scene.remove(bullet.mesh);
         bullets.splice(i, 1);
     
         attackingRobots = attackingRobots.filter(r => r !== enemy);
     
+        const deathAudio = new Audio('assets/audio/Lego_Destroy.mp3');
+        deathAudio.play();
+
         switchAnimation(enemy, 1);
         deadRobots.push(enemy);
     
@@ -340,49 +349,15 @@ function updateBullets() {
         const animationDuration = action.getClip().duration;
     
         setTimeout(() => {
-          enemy.userData.mixer.stopAllAction();
-          enemy.userData.mixer.update(enemy.userData.mixer.time);
-          fadeOutAndRemove(enemy);
-      }, animationDuration * 1000);
+          objectR.remove(enemy);
+          scene.remove(enemy);
+          deadRobots = deadRobots.filter(r => r !== enemy);
+        }, animationDuration * 1000);
       }      
     }
   }
 }
 
-function fadeOutAndRemove(enemy) {
-  let opacity = 1.0; // Commence totalement visible
-  const fadeSpeed = 50; // Intervalle en ms (plus petit = plus fluide)
-  const duration = 1.5; // Durée totale du fondu en secondes
-  const decrement = opacity / (duration * (1000 / fadeSpeed)); // Calcul du pas de diminution
-
-  // Rendre tous les matériaux transparents
-  enemy.traverse((child) => {
-      if (child.isMesh) {
-          child.material.transparent = true;
-      }
-  });
-
-  // Démarre le fondu progressif
-  const fadeInterval = setInterval(() => {
-      opacity -= decrement;
-      if (opacity <= 0) {
-          opacity = 0;
-          clearInterval(fadeInterval); // Stoppe le fondu
-
-          // Supprime complètement le robot
-          objectR.remove(enemy);
-          scene.remove(enemy);
-          deadRobots = deadRobots.filter(r => r !== enemy);
-      }
-
-      // Applique la nouvelle opacité
-      enemy.traverse((child) => {
-          if (child.isMesh) {
-              child.material.opacity = opacity;
-          }
-      });
-  }, fadeSpeed);
-}
 
 function updateEnemies() {
   for (let i = objectR.children.length - 1; i >= 0; i--) {
@@ -400,7 +375,16 @@ function updateEnemies() {
   }
 }
 
+function switchAnimation(model, anim) {
+  if (model.userData.mixer) {
+      // Stop l'animation actuelle
+      model.userData.mixer.stopAllAction();
 
+      // Démarre l'animation n°anim
+      const action = model.userData.mixer.clipAction(model.userData.animations[anim]);
+      action.play();
+  }
+}
 
 function damagePlayer() {
   if (attackingRobots.length > 0) { // Vérifie s'il y a des robots qui attaquent
@@ -418,9 +402,12 @@ function damagePlayer() {
 
     if (playerHP <= 0) {
       console.log("Game Over !");
-      alert("Game Over !");
-      resetGame();
-    }
+      
+      displayGameOver3D();
+  
+      setTimeout(resetGame, 5000);
+  }
+  
   } else {
     if (circleMesh) {
       circleMesh.material.color.set(0xffffff);
@@ -428,20 +415,65 @@ function damagePlayer() {
    }
 }
 
-// Lance le timer pour les dégâts (1 PV toutes les 2 sec)
 setInterval(damagePlayer, 2000);
 
+function displayGameOver3D() {
+  const loader = new TTFLoader();
+  loader.load('assets/texte/kenpixel.ttf', (json) => { 
+      const fontLoader = new FontLoader();
+      const font = fontLoader.parse(json);
 
-function switchAnimation(model, anim) {
-  if (model.userData.mixer) {
-      // Stop l'animation actuelle
-      model.userData.mixer.stopAllAction();
+      const textGeo = new TextGeometry('GAME OVER', {
+          font: font,
+          size: 0.1,
+          depth: 0.1,
+          height: 0.1,
+          curveSegments: 0.0001,
+          bevelEnabled: true,
+          bevelThickness: 0.0001,
+          bevelSize: 0.0002,
+          bevelOffset: 0,
+          bevelSegments: 1
+      });
 
-      // Démarre l'animation n°anim
-      const action = model.userData.mixer.clipAction(model.userData.animations[anim]);
-      action.play();
-  }
+      textGeo.computeBoundingBox();
+      textGeo.computeVertexNormals();
+
+      const textMaterial = new THREE.MeshPhongMaterial({ color: 0xff7000, flatShading: true });
+      const textMesh = new THREE.Mesh(textGeo, textMaterial);
+
+      const boundingBox = textGeo.boundingBox;
+      const center = new THREE.Vector3();
+      boundingBox.getCenter(center);
+      textGeo.translate(-center.x, -center.y, -center.z);
+
+      const cameraPosition = camera.position.clone();
+      const direction = new THREE.Vector3();
+      camera.getWorldDirection(direction);
+
+      const startHeight = 2; // ✅ Hauteur initiale par rapport à la caméra
+      textMesh.position.copy(cameraPosition).add(direction.multiplyScalar(1.5));
+      textMesh.position.y += startHeight; // ✅ Ajoute de la hauteur pour qu'il tombe de plus haut
+
+      textMesh.quaternion.copy(camera.quaternion);
+
+      scene.add(textMesh);
+
+      let velocity = 0.02;
+      function animateText() {
+          const targetY = cameraPosition.y; // ✅ Centre de la caméra
+          if (textMesh.position.y > targetY) {
+              textMesh.position.y -= velocity;
+              velocity += 0.001; // Accélération progressive
+              requestAnimationFrame(animateText);
+          } else {
+              textMesh.position.y = targetY; // ✅ Évite qu'il descende trop bas
+          }
+      }
+      animateText();
+  });
 }
+
 
 function resetGame() {
   playerHP = 5;
