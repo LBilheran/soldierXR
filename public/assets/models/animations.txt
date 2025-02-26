@@ -1,0 +1,21 @@
+Michelle :
+
+0 : Dance
+1 : T-pose
+
+Robot :
+
+0 : Dance
+1 : Death
+2 : Stand
+3 : Jump
+4 : No
+5 : Punch
+6 : Run
+7 : T-bag
+8 : T-bag
+9 : Pouce
+10 : Walk
+11 : Mario Jump
+12 : Hi
+13 : Yes 
