@@ -81,6 +81,7 @@ let playerHP = wave;
 let nbrRobot = wave;
 
 let gameOver = false;
+let next = false;
 
 const music = new Audio('assets/audio/music_AoW.mp3');
 
@@ -314,6 +315,7 @@ const animate = () => {
    }
 
   if (nbrRobot <= 0 && !next) {
+    next = true;
     nextWave();
   }
 
@@ -480,6 +482,8 @@ function nextWave() {
   wave++
   playerHP = wave;
   nbrRobot = wave;
+
+  next = false;
 
   objectM.children.forEach(enemy => scene.remove(enemy));
   objectM.children = [];
