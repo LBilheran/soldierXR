@@ -68,6 +68,7 @@ let deadRobots = [];
 
 let circleMesh;
 let gameOverText = null;
+let nextWaveText = null;
 
 let bullets = [];
 const bulletSpeed = 0.1;
@@ -77,7 +78,8 @@ let minRadius = 1;
 let maxRadius = 10;
 
 let wave = 1;
-let playerHP = wave;
+let playerHPmax = 5; 
+let playerHP = playerHPmax;
 let nbrRobot = wave;
 
 let gameOver = false;
@@ -183,46 +185,71 @@ function setupEventListeners() {
   controller.addEventListener('select', shootBullet);
 }
 
-function loadMichelle(url, count, maxRadiusMichelle = minRadius - 0.2) {
+function loadMichelle(url, closeCount, farCount, maxRadiusMichelle = minRadius - 0.2, minRadiusMichelle = minRadius + 3) {
 
   const loader = new GLTFLoader();
   loader.load(url, function (gltf) {
 
-      for (let i = 0; i < count; i++) {
+      // ✅ Listes séparées pour les clones proches et lointains
+      let closeMichelles = [];
+      let farMichelles = [];
 
-          // Génère une position aléatoire dans l'anneau défini par [minRadius, maxRadius]
-          const angle = Math.random() * Math.PI * 2; // Angle aléatoire
-          const distance = Math.random() * (maxRadiusMichelle); // Distance entre min et max
+      // 🔹 Génération des clones proches
+      for (let i = 0; i < closeCount; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const distance = Math.random() * maxRadiusMichelle;
           const posX = Math.cos(angle) * distance;
           const posZ = Math.sin(angle) * distance;
-          const posY = 0; // Toujours au niveau du sol
+          const posY = 0;
 
-          // Clone avec animations
           const clone = SkeletonUtils.clone(gltf.scene);
-          scene.add(clone);
-
-          clone.traverse((child) => {
-            if (child.isMesh) {
-                child.castShadow = true;
-                child.receiveShadow = true;
-            }
-          });
-
           clone.scale.set(0.5, 0.5, 0.5);
           clone.position.set(posX, posY, posZ);
           clone.rotation.y = Math.random() * Math.PI * 2;
 
+          // Animation setup
           const mixer = new THREE.AnimationMixer(clone);
           clone.userData.mixer = mixer;
           const action = mixer.clipAction(gltf.animations[0]);
           action.play();
 
+          closeMichelles.push(clone); // ✅ Ajoute à la liste des proches
+          scene.add(clone);
           objectM.add(clone);
       }
+
+      // 🔹 Génération des clones lointains
+      for (let i = 0; i < farCount; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const distance = Math.random() * (maxRadius - minRadiusMichelle) + minRadiusMichelle;
+          const posX = Math.cos(angle) * distance;
+          const posZ = Math.sin(angle) * distance;
+          const posY = 0;
+
+          const clone = SkeletonUtils.clone(gltf.scene);
+          clone.scale.set(0.5, 0.5, 0.5);
+          clone.position.set(posX, posY, posZ);
+          clone.rotation.y = Math.random() * Math.PI * 2;
+
+          // Animation setup
+          const mixer = new THREE.AnimationMixer(clone);
+          clone.userData.mixer = mixer;
+          const action = mixer.clipAction(gltf.animations[0]);
+          action.play();
+
+          farMichelles.push(clone); // ✅ Ajoute à la liste des lointains
+          scene.add(clone);
+          objectM.add(clone);
+      }
+
+      // ✅ Stocke les listes globalement pour pouvoir les manipuler plus tard
+      window.closeMichelles = closeMichelles;
+      window.farMichelles = farMichelles;
   });
 }
 
-loadMichelle('assets/models/Michelle.glb', playerHP);
+
+loadMichelle('assets/models/Michelle.glb', playerHP, 2);
 
 function loadRobot(url, count) {
 
@@ -267,7 +294,7 @@ function loadRobot(url, count) {
   });
 }
 
-loadRobot('assets/models/RobotExpressive.glb', 2);
+loadRobot('assets/models/RobotExpressive.glb', nbrRobot);
 
 function shootBullet() {
   const bulletGeometry = new THREE.SphereGeometry(0.05, 16, 16);
@@ -316,7 +343,7 @@ const animate = () => {
 
   if (nbrRobot <= 0 && !next) {
     next = true;
-    nextWave();
+    displayNextWave3D(nextWave);
   }
 
   if (playerHP == 0 && !gameOver) {  
@@ -406,16 +433,17 @@ function switchAnimation(model, anim) {
 function damagePlayer() {
   if (attackingRobots.length > 0) { // Vérifie s'il y a des robots qui attaquent
 
-    playerHP--; // Perd 1 PV
-    console.log(`PV restants: ${playerHP}`);
+      playerHP--; // Perd 1 PV
+      console.log(`PV restants: ${playerHP}`);
 
-    if (objectM.children.length > 0) {
-      let michelle = objectM.children.pop();
-      scene.remove(michelle);
-    }
-  
+      if (closeMichelles.length > 0) {
+          let michelle = closeMichelles.pop();
+          scene.remove(michelle);
+          objectM.remove(michelle);
+      }
   }
 }
+
 
 setInterval(damagePlayer, 2000);
 
@@ -426,16 +454,15 @@ function displayGameOver3D() {
       const font = fontLoader.parse(json);
 
       const textGeo = new TextGeometry('GAME OVER', {
-          font: font,
-          size: 0.1,
-          depth: 0.1,
-          height: 0.1,
-          curveSegments: 0.0001,
-          bevelEnabled: true,
-          bevelThickness: 0.0001,
-          bevelSize: 0.0002,
-          bevelOffset: 0,
-          bevelSegments: 1
+        font: font,
+        size: 0.1,
+        depth: 0.02,
+        curveSegments: 12,
+        bevelEnabled: true,
+        bevelThickness: 0.005,
+        bevelSize: 0.002,
+        bevelOffset: 0,
+        bevelSegments: 3
       });
 
       textGeo.computeBoundingBox();
@@ -478,9 +505,95 @@ function displayGameOver3D() {
   });
 }
 
+function displayNextWave3D(callback) {
+  const loader = new TTFLoader();
+  loader.load('assets/texte/kenpixel.ttf', (json) => { 
+      const fontLoader = new FontLoader();
+      const font = fontLoader.parse(json);
+
+      let countdown = 3;
+      
+      // ✅ Crée la géométrie initiale
+      let textGeo = new TextGeometry(`Next Wave in : ${countdown}`, {
+          font: font,
+          size: 0.1,
+          depth: 0.02,
+          curveSegments: 12,
+          bevelEnabled: true,
+          bevelThickness: 0.005,
+          bevelSize: 0.002,
+          bevelOffset: 0,
+          bevelSegments: 3
+      });
+
+      textGeo.computeBoundingBox();
+      textGeo.computeVertexNormals();
+
+      const textMaterial = new THREE.MeshPhongMaterial({ color: 0xff7000, flatShading: true });
+      let textMesh = new THREE.Mesh(textGeo, textMaterial);
+
+      // ✅ Centre le texte par rapport à lui-même
+      const boundingBox = textGeo.boundingBox;
+      const center = new THREE.Vector3();
+      boundingBox.getCenter(center);
+      textGeo.translate(-center.x, -center.y, -center.z);
+
+      // ✅ Positionner le texte devant la caméra UNE SEULE FOIS
+      const cameraPosition = camera.position.clone();
+      const direction = new THREE.Vector3();
+      camera.getWorldDirection(direction);
+      textMesh.position.copy(cameraPosition).add(direction.multiplyScalar(1.5));
+      textMesh.quaternion.copy(camera.quaternion); // ✅ Garde la même orientation que la caméra
+
+      scene.add(textMesh);
+      nextWaveText = textMesh; // ✅ Stocke le texte pour mise à jour
+
+      // ✅ Mise à jour du texte chaque seconde (sans repositionner)
+      const interval = setInterval(() => {
+          countdown--;
+
+          if (countdown > 0) {
+              // ✅ Supprime seulement la géométrie et met à jour le texte
+              scene.remove(nextWaveText);
+              textGeo.dispose();
+
+              textGeo = new TextGeometry(`Next Wave in : ${countdown}`, {
+                  font: font,
+                  size: 0.1,
+                  depth: 0.02,
+                  curveSegments: 12,
+                  bevelEnabled: true,
+                  bevelThickness: 0.005,
+                  bevelSize: 0.002,
+                  bevelOffset: 0,
+                  bevelSegments: 3
+              });
+
+              textGeo.computeBoundingBox();
+              textGeo.computeVertexNormals();
+              textGeo.translate(-center.x, -center.y, -center.z);
+
+              nextWaveText = new THREE.Mesh(textGeo, textMaterial);
+              nextWaveText.position.copy(textMesh.position);
+              nextWaveText.quaternion.copy(textMesh.quaternion);
+
+              scene.add(nextWaveText);
+          } else {
+              clearInterval(interval);
+              scene.remove(nextWaveText);
+              nextWaveText.geometry.dispose();
+              nextWaveText.material.dispose();
+              nextWaveText = null;
+
+              if (callback) callback();
+          }
+      }, 1000);
+  });
+}
+
+
 function nextWave() {
   wave++
-  playerHP = wave;
   nbrRobot = wave;
 
   next = false;
@@ -498,7 +611,7 @@ function nextWave() {
 
 function resetGame() {  
   wave = 1;
-  playerHP = wave;
+  playerHP = playerHPmax;
   nbrRobot = wave;
 
   gameOver = false;
