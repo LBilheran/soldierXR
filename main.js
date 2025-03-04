@@ -67,6 +67,7 @@ let attackingRobots = [];
 let deadRobots = [];
 
 let circleMesh;
+let gameOverText = null;
 
 let bullets = [];
 const bulletSpeed = 0.1;
@@ -75,7 +76,11 @@ const maxBulletDistance = 10;
 let minRadius = 1;
 let maxRadius = 10;
 
-let playerHP = 1;
+let wave = 1;
+let playerHP = wave;
+let nbrRobot = wave;
+
+let gameOver = false;
 
 const music = new Audio('assets/audio/music_AoW.mp3');
 
@@ -135,13 +140,6 @@ const init = () => {
   document.body.appendChild(renderer.domElement);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  
-  /*
-  document.body.appendChild( XRButton.createButton( renderer, {
-    'optionalFeatures': [ 'depth-sensing' ],
-    'depthSensing': { 'usagePreference': [ 'gpu-optimized' ], 'dataFormatPreference': [] }
-  } ) );
-*/
 
   const xrButton = XRButton.createButton(renderer, {});
   xrButton.style.backgroundColor = 'skyblue';
@@ -152,7 +150,6 @@ const init = () => {
 
 
   const controls = new OrbitControls(camera, renderer.domElement);
-  //controls.listenToKeyEvents(window); // optional
   controls.target.set(0, 1.6, 0);
   controls.update();
 
@@ -162,7 +159,6 @@ const init = () => {
   setupEventListeners();
 
   window.addEventListener('resize', onWindowResize, false);
-
 }
 
 function onWindowResize() {
@@ -185,32 +181,6 @@ function setupEventListeners() {
   // Sélection AR (pour mobile et casque VR)
   controller.addEventListener('select', shootBullet);
 }
-
-// Main loop
-const animate = () => {
-
-  const delta = clock.getDelta();
-
-  // const elapsed = clock.getElapsedTime();
-  // can be used in shaders: uniforms.u_time.value = elapsed;
-
-  objectM.children.forEach(michelle => {
-    if (michelle.userData.mixer) {
-      michelle.userData.mixer.update(delta);
-    }
-  });
-  objectR.children.forEach(robot => {
-    if (robot.userData.mixer) {
-      robot.userData.mixer.update(delta);
-    }
-  });  
-  updateBullets();
-  updateEnemies();
-
-  renderer.render(scene, camera);
-};
-
-init();
 
 function loadMichelle(url, count, maxRadiusMichelle = minRadius - 0.2) {
 
@@ -251,7 +221,7 @@ function loadMichelle(url, count, maxRadiusMichelle = minRadius - 0.2) {
   });
 }
 
-loadMichelle('assets/models/Michelle.glb', 5);
+loadMichelle('assets/models/Michelle.glb', playerHP);
 
 function loadRobot(url, count) {
 
@@ -313,6 +283,50 @@ function shootBullet() {
   scene.add(bullet);
 }
 
+// Main loop
+const animate = () => {
+
+  const delta = clock.getDelta();
+
+  objectM.children.forEach(michelle => {
+    if (michelle.userData.mixer) {
+      michelle.userData.mixer.update(delta);
+    }
+  });
+  objectR.children.forEach(robot => {
+    if (robot.userData.mixer) {
+      robot.userData.mixer.update(delta);
+    }
+  });  
+  
+  updateBullets();
+  updateEnemies();
+
+  if (attackingRobots.length > 0) { // Vérifie s'il y a des robots qui attaquent
+    if (circleMesh) {
+      circleMesh.material.color.set(0xff0000);
+    };
+
+  } else {
+    if (circleMesh) {
+      circleMesh.material.color.set(0xffffff);
+    }
+   }
+
+  if (nbrRobot <= 0 && !next) {
+    nextWave();
+  }
+
+  if (playerHP == 0 && !gameOver) {  
+    gameOver = true;  
+    displayGameOver3D();
+    setTimeout(resetGame, 5000);
+  }
+
+  renderer.render(scene, camera);
+};
+
+
 function updateBullets() {
   for (let i = bullets.length - 1; i >= 0; i--) {
     let bullet = bullets[i];
@@ -352,6 +366,7 @@ function updateBullets() {
           objectR.remove(enemy);
           scene.remove(enemy);
           deadRobots = deadRobots.filter(r => r !== enemy);
+          nbrRobot -= 1;
         }, animationDuration * 1000);
       }      
     }
@@ -388,9 +403,6 @@ function switchAnimation(model, anim) {
 
 function damagePlayer() {
   if (attackingRobots.length > 0) { // Vérifie s'il y a des robots qui attaquent
-    if (circleMesh) {
-      circleMesh.material.color.set(0xff0000);
-    };
 
     playerHP--; // Perd 1 PV
     console.log(`PV restants: ${playerHP}`);
@@ -399,20 +411,8 @@ function damagePlayer() {
       let michelle = objectM.children.pop();
       scene.remove(michelle);
     }
-
-    if (playerHP <= 0) {
-      console.log("Game Over !");
-      
-      displayGameOver3D();
   
-      setTimeout(resetGame, 5000);
   }
-  
-  } else {
-    if (circleMesh) {
-      circleMesh.material.color.set(0xffffff);
-    }
-   }
 }
 
 setInterval(damagePlayer, 2000);
@@ -451,35 +451,70 @@ function displayGameOver3D() {
       const direction = new THREE.Vector3();
       camera.getWorldDirection(direction);
 
-      const startHeight = 2; // ✅ Hauteur initiale par rapport à la caméra
+      const startHeight = 2;
       textMesh.position.copy(cameraPosition).add(direction.multiplyScalar(1.5));
-      textMesh.position.y += startHeight; // ✅ Ajoute de la hauteur pour qu'il tombe de plus haut
+      textMesh.position.y += startHeight;
 
       textMesh.quaternion.copy(camera.quaternion);
 
       scene.add(textMesh);
 
+      gameOverText = textMesh;
+
       let velocity = 0.02;
       function animateText() {
-          const targetY = cameraPosition.y; // ✅ Centre de la caméra
+          const targetY = cameraPosition.y;
           if (textMesh.position.y > targetY) {
               textMesh.position.y -= velocity;
-              velocity += 0.001; // Accélération progressive
+              velocity += 0.001;
               requestAnimationFrame(animateText);
           } else {
-              textMesh.position.y = targetY; // ✅ Évite qu'il descende trop bas
+              textMesh.position.y = targetY;
           }
       }
       animateText();
   });
 }
 
+function nextWave() {
+  wave++
+  playerHP = wave;
+  nbrRobot = wave;
 
-function resetGame() {
-  playerHP = 5;
   objectM.children.forEach(enemy => scene.remove(enemy));
   objectM.children = [];
   objectR.children.forEach(enemy => scene.remove(enemy));
   objectR.children = [];
+  attackingRobots = [];
+  deadRobots = [];
+
+  loadMichelle('assets/models/Michelle.glb', playerHP);
+  loadRobot('assets/models/RobotExpressive.glb', nbrRobot);
 }
 
+function resetGame() {  
+  wave = 1;
+  playerHP = wave;
+  nbrRobot = wave;
+
+  gameOver = false;
+
+  objectM.children.forEach(enemy => scene.remove(enemy));
+  objectM.children = [];
+  objectR.children.forEach(enemy => scene.remove(enemy));
+  objectR.children = [];
+  attackingRobots = [];
+  deadRobots = [];
+
+  if (gameOverText) {
+    scene.remove(gameOverText);
+    gameOverText.geometry.dispose();
+    gameOverText.material.dispose();
+    gameOverText = null;
+  }
+
+  loadMichelle('assets/models/Michelle.glb', playerHP);
+  loadRobot('assets/models/RobotExpressive.glb', nbrRobot);
+}
+
+init();
