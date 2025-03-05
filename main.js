@@ -432,6 +432,7 @@ function updateEnemies() {
 
 function updateFarMichelles() {
   const playerPosition = camera.position.clone();
+  const maxRadiusMichelle = minRadius - 0.2;
   for (let i = farMichelles.length - 1; i >= 0; i--) {
       let michelle = farMichelles[i];
       let distanceToPlayer = michelle.position.distanceTo(playerPosition);
@@ -640,8 +641,6 @@ function nextWave() {
 
   next = false;
 
-  objectM.children.forEach(enemy => scene.remove(enemy));
-  objectM.children = [];
   objectR.children.forEach(enemy => scene.remove(enemy));
   objectR.children = [];
   attackingRobots = [];
