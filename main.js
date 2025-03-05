@@ -69,6 +69,9 @@ let objectR = new THREE.Group();
 let attackingRobots = [];
 let deadRobots = [];
 
+let closeMichelles = [];
+let farMichelles = [];
+
 let circleMesh;
 let gameOverText = null;
 let nextWaveText = null;
@@ -197,11 +200,7 @@ function loadMichelle(url, closeCount, farCount, maxRadiusMichelle = minRadius -
   const loader = new GLTFLoader();
   loader.load(url, function (gltf) {
 
-      // ✅ Listes séparées pour les clones proches et lointains
-      let closeMichelles = [];
-      let farMichelles = [];
-
-      // 🔹 Génération des clones proches
+      // Close Michelle
       for (let i = 0; i < closeCount; i++) {
           const angle = Math.random() * Math.PI * 2;
           const distance = Math.random() * maxRadiusMichelle;
@@ -214,18 +213,17 @@ function loadMichelle(url, closeCount, farCount, maxRadiusMichelle = minRadius -
           clone.position.set(posX, posY, posZ);
           clone.rotation.y = Math.random() * Math.PI * 2;
 
-          // Animation setup
           const mixer = new THREE.AnimationMixer(clone);
           clone.userData.mixer = mixer;
           const action = mixer.clipAction(gltf.animations[0]);
           action.play();
 
-          closeMichelles.push(clone); // ✅ Ajoute à la liste des proches
+          closeMichelles.push(clone);
           scene.add(clone);
           objectM.add(clone);
       }
 
-      // 🔹 Génération des clones lointains
+      // Far Michelle
       for (let i = 0; i < farCount; i++) {
           const angle = Math.random() * Math.PI * 2;
           const distance = Math.random() * (maxRadius - minRadiusMichelle) + minRadiusMichelle;
@@ -238,18 +236,16 @@ function loadMichelle(url, closeCount, farCount, maxRadiusMichelle = minRadius -
           clone.position.set(posX, posY, posZ);
           clone.rotation.y = Math.random() * Math.PI * 2;
 
-          // Animation setup
           const mixer = new THREE.AnimationMixer(clone);
           clone.userData.mixer = mixer;
           const action = mixer.clipAction(gltf.animations[0]);
           action.play();
 
-          farMichelles.push(clone); // ✅ Ajoute à la liste des lointains
+          farMichelles.push(clone);
           scene.add(clone);
           objectM.add(clone);
       }
 
-      // ✅ Stocke les listes globalement pour pouvoir les manipuler plus tard
       window.closeMichelles = closeMichelles;
       window.farMichelles = farMichelles;
   });
@@ -265,14 +261,12 @@ function loadRobot(url, count) {
       const minRadiusRobot = minRadius + 2;
       for (let i = 0; i < count; i++) {
 
-          // Génère une position aléatoire dans l'anneau défini par [minRadius, maxRadius]
-          const angle = Math.random() * Math.PI * 2; // Angle aléatoire
-          const distance = Math.random() * (maxRadius - minRadiusRobot) + minRadiusRobot; // Distance entre min et max
+          const angle = Math.random() * Math.PI * 2;
+          const distance = Math.random() * (maxRadius - minRadiusRobot) + minRadiusRobot;
           const posX = Math.cos(angle) * distance;
           const posZ = Math.sin(angle) * distance;
-          const posY = 0; // Toujours au niveau du sol
+          const posY = 0;
 
-          // Clone avec animations
           const clone = SkeletonUtils.clone(gltf.scene);
           scene.add(clone);
 
@@ -338,7 +332,7 @@ const animate = () => {
   updateEnemies();
   updateFarMichelles();
 
-  if (attackingRobots.length > 0) { // Vérifie s'il y a des robots qui attaquent
+  if (attackingRobots.length > 0) {
     if (circleMesh) {
       circleMesh.material.color.set(0xff0000);
     };
@@ -429,7 +423,6 @@ function updateEnemies() {
 
 function updateFarMichelles() {
   const playerPosition = camera.position.clone();
-  
   for (let i = farMichelles.length - 1; i >= 0; i--) {
       let michelle = farMichelles[i];
       let distanceToPlayer = michelle.position.distanceTo(playerPosition);
@@ -462,19 +455,17 @@ function updateFarMichelles() {
 
 function switchAnimation(model, anim) {
   if (model.userData.mixer) {
-      // Stop l'animation actuelle
       model.userData.mixer.stopAllAction();
 
-      // Démarre l'animation n°anim
       const action = model.userData.mixer.clipAction(model.userData.animations[anim]);
       action.play();
   }
 }
 
 function damagePlayer() {
-  if (attackingRobots.length > 0) { // Vérifie s'il y a des robots qui attaquent
+  if (attackingRobots.length > 0) {
 
-      playerHP--; // Perd 1 PV
+      playerHP--;
       console.log(`PV restants: ${playerHP}`);
 
       if (closeMichelles.length > 0) {
