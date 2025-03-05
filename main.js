@@ -336,6 +336,7 @@ const animate = () => {
   
   updateBullets();
   updateEnemies();
+  updateFarMichelles();
 
   if (attackingRobots.length > 0) { // Vérifie s'il y a des robots qui attaquent
     if (circleMesh) {
@@ -425,6 +426,39 @@ function updateEnemies() {
       }
   }
 }
+
+function updateFarMichelles() {
+  const playerPosition = camera.position.clone();
+  
+  for (let i = farMichelles.length - 1; i >= 0; i--) {
+      let michelle = farMichelles[i];
+      let distanceToPlayer = michelle.position.distanceTo(playerPosition);
+
+      if (distanceToPlayer < 0.8) {
+          farMichelles.splice(i, 1);
+
+          // Position in the base circle
+          const angle = Math.random() * Math.PI * 2;
+          const distance = Math.random() * maxRadiusMichelle;
+          const posX = Math.cos(angle) * distance;
+          const posZ = Math.sin(angle) * distance;
+          const posY = 0;
+
+          michelle.position.set(posX, posY, posZ);
+
+          closeMichelles.push(michelle);
+
+          playerHP++;
+          console.log(`+1 PV ! Nouveau PV: ${playerHP}`);
+
+          const Up1Audio = new Audio('assets/audio/mario_1up.mp3');
+          Up1Audio.play();
+
+          break;
+      }
+  }
+}
+
 
 function switchAnimation(model, anim) {
   if (model.userData.mixer) {
