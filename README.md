@@ -25,13 +25,13 @@ The game is downloadable on phone!
 
 ## Live Demo
 
-Results: https://lbilheran.github.io/soldier-project/
+Results: https://lbilheran.github.io/soldierXR/
 
-![Alt text](./public/images/soldier-project_view.png?raw=true "Result")
+![Alt text](./public/assets/images/robot-144.png?raw=true "Result")
 
 ## Phone installation
 
-- Go to https://lbilheran.github.io/soldier-project/ on your phone (Chrome is the best option, maybe it doesn't work on other browsers).
+- Go to https://lbilheran.github.io/soldierXR/ on your phone (Chrome is the best option, maybe it doesn't work on other browsers).
 - Click on the three dots and click on "Add to home screen".
 - Click "Install" to play offline ! Or, create a shorcut to go to the site faster.
 
@@ -54,7 +54,7 @@ npm install
 npm run dev
 ```
 
-- Open the following address on a browser (Firefox for example): http://localhost:5173/soldier-projet/
+- Open the following address on a browser (Firefox for example): http://localhost:5173
 
 ## Sources
 
