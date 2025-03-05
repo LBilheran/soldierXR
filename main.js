@@ -195,7 +195,7 @@ function setupEventListeners() {
 
 
 // Load models
-function loadMichelle(url, closeCount, farCount, maxRadiusMichelle = minRadius - 0.2, minRadiusMichelle = minRadius + 3) {
+function loadMichelle(url, closeCount, maxRadiusMichelle = minRadius - 0.2) {
 
   const loader = new GLTFLoader();
   loader.load(url, function (gltf) {
@@ -223,6 +223,15 @@ function loadMichelle(url, closeCount, farCount, maxRadiusMichelle = minRadius -
           objectM.add(clone);
       }
 
+      window.closeMichelles = closeMichelles;
+  });
+}
+
+function loadFarMichelle(url, farCount, minRadiusMichelle = minRadius + 3) {
+
+  const loader = new GLTFLoader();
+  loader.load(url, function (gltf) {
+
       // Far Michelle
       for (let i = 0; i < farCount; i++) {
           const angle = Math.random() * Math.PI * 2;
@@ -246,12 +255,12 @@ function loadMichelle(url, closeCount, farCount, maxRadiusMichelle = minRadius -
           objectM.add(clone);
       }
 
-      window.closeMichelles = closeMichelles;
       window.farMichelles = farMichelles;
   });
 }
 
-loadMichelle('assets/models/Michelle.glb', playerHP, 2);
+loadMichelle('assets/models/Michelle.glb', playerHP);
+loadFarMichelle('assets/models/Michelle.glb', 5);
 
 function loadRobot(url, count) {
 
@@ -638,7 +647,6 @@ function nextWave() {
   attackingRobots = [];
   deadRobots = [];
 
-  loadMichelle('assets/models/Michelle.glb', playerHP);
   loadRobot('assets/models/RobotExpressive.glb', nbrRobot);
 }
 
