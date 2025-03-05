@@ -18,6 +18,8 @@ import { TTFLoader } from 'three/addons/loaders/TTFLoader.js';
 import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
 
+
+// XR setup
 async function setupXR(xrMode) {
 
   if (xrMode !== 'immersive-vr') return;
@@ -55,6 +57,7 @@ async function setupXR(xrMode) {
 await setupXR('immersive-ar');
 
 
+// Initalisation
 let camera, scene, renderer;
 let controller;
 
@@ -164,6 +167,8 @@ const init = () => {
   window.addEventListener('resize', onWindowResize, false);
 }
 
+
+// EventsListeners
 function onWindowResize() {
 
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -185,6 +190,8 @@ function setupEventListeners() {
   controller.addEventListener('select', shootBullet);
 }
 
+
+// Load models
 function loadMichelle(url, closeCount, farCount, maxRadiusMichelle = minRadius - 0.2, minRadiusMichelle = minRadius + 3) {
 
   const loader = new GLTFLoader();
@@ -248,7 +255,6 @@ function loadMichelle(url, closeCount, farCount, maxRadiusMichelle = minRadius -
   });
 }
 
-
 loadMichelle('assets/models/Michelle.glb', playerHP, 2);
 
 function loadRobot(url, count) {
@@ -311,7 +317,8 @@ function shootBullet() {
   scene.add(bullet);
 }
 
-// Main loop
+
+// Animation and Interaction
 const animate = () => {
 
   const delta = clock.getDelta();
@@ -592,6 +599,7 @@ function displayNextWave3D(callback) {
 }
 
 
+// Update Game
 function nextWave() {
   wave++
   nbrRobot = wave;
