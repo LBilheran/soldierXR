@@ -227,7 +227,7 @@ function loadMichelle(url, closeCount, maxRadiusMichelle = minRadius - 0.2) {
   });
 }
 
-function loadFarMichelle(url, farCount, minRadiusMichelle = minRadius + 3) {
+function loadFarMichelle(url, farCount, maxRadiusMichelle = maxRadius - 3, minRadiusMichelle = minRadius + 3) {
 
   const loader = new GLTFLoader();
   loader.load(url, function (gltf) {
@@ -235,7 +235,7 @@ function loadFarMichelle(url, farCount, minRadiusMichelle = minRadius + 3) {
       // Far Michelle
       for (let i = 0; i < farCount; i++) {
           const angle = Math.random() * Math.PI * 2;
-          const distance = Math.random() * (maxRadius - minRadiusMichelle) + minRadiusMichelle;
+          const distance = Math.random() * (maxRadiusMichelle - minRadiusMichelle) + minRadiusMichelle;
           const posX = Math.cos(angle) * distance;
           const posZ = Math.sin(angle) * distance;
           const posY = 0;
@@ -671,6 +671,7 @@ function resetGame() {
   }
 
   loadMichelle('assets/models/Michelle.glb', playerHP);
+  loadFarMichelle('assets/models/Michelle.glb', 5);
   loadRobot('assets/models/RobotExpressive.glb', nbrRobot);
 }
 
