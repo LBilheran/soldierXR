@@ -86,12 +86,13 @@ let maxRadius = 10;
 let wave = 1;
 let playerHPmax = 5; 
 let playerHP = playerHPmax;
-let nbrRobot = wave;
+let nbrRobot = 1;
 
 let gameOver = false;
 let next = false;
 
 const music = new Audio('assets/audio/music_AoW.mp3');
+const gameOverAudio = new Audio('assets/audio/gameover.mp3');
 
 const init = () => {
   scene = new THREE.Scene();
@@ -106,7 +107,7 @@ const init = () => {
   scene.add(circleMesh);
 
   const aspect = window.innerWidth / window.innerHeight;
-  camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 10); // meters
+  camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 30); // meters
   camera.position.set(0, 1.6, 3);
 
   const light = new THREE.AmbientLight(0xffffff, 1.0); // soft white light
@@ -123,7 +124,7 @@ const init = () => {
   dirLight.shadow.mapSize.width = 1024;
   dirLight.shadow.mapSize.height = 1024;
   dirLight.shadow.camera.near = 0.5;
-  dirLight.shadow.camera.far = 50;
+  dirLight.shadow.camera.far = 150;
   dirLight.shadow.camera.left = -10;
   dirLight.shadow.camera.right = 10;
   dirLight.shadow.camera.top = 10;
@@ -154,6 +155,7 @@ const init = () => {
   xrButton.style.backgroundColor = 'skyblue';
   document.body.appendChild(xrButton);
   xrButton.addEventListener('click', () => {
+    music.loop = true;
     music.play();
   });
 
@@ -291,7 +293,56 @@ function loadRobot(url, count) {
           clone.lookAt(new THREE.Vector3(0, clone.position.y, 0));
 
           clone.userData.boundingBox = new THREE.Box3().setFromObject(clone);
+          clone.userData.hp = 1;
 
+          const mixer = new THREE.AnimationMixer(clone);
+          clone.userData.mixer = mixer;
+          clone.userData.animations = gltf.animations;
+          const action = mixer.clipAction(clone.userData.animations[6]);
+          action.play();
+
+          objectR.add(clone);
+      }
+  });
+}
+
+function loadMetalRobot(url, count) {
+  const loader = new GLTFLoader();
+  loader.load(url, function (gltf) {
+      const minRadiusRobot = minRadius + 2;
+
+      for (let i = 0; i < count; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const distance = Math.random() * (maxRadius - minRadiusRobot) + minRadiusRobot;
+          const posX = Math.cos(angle) * distance;
+          const posZ = Math.sin(angle) * distance;
+          const posY = 0;
+
+          const clone = SkeletonUtils.clone(gltf.scene);
+          scene.add(clone);
+
+          // ✅ Appliquer une texture métallique aux meshes
+          clone.traverse((child) => {
+              if (child.isMesh) {
+                  child.castShadow = true;
+                  child.receiveShadow = true;
+                  child.material = new THREE.MeshStandardMaterial({
+                      color: 0x888888,  // ✅ Gris métallique
+                      metalness: 0.8,     // ✅ 100% métallique
+                      roughness: 0.2    // ✅ Un peu brillant
+                  });
+              }
+          });
+
+          // ✅ Plus gros que les robots classiques
+          clone.scale.set(0.5, 0.5, 0.5);
+          clone.position.set(posX, posY, posZ);
+          clone.lookAt(new THREE.Vector3(0, clone.position.y, 0));
+
+          clone.userData.boundingBox = new THREE.Box3().setFromObject(clone);
+          clone.userData.hp = 5;
+
+          // ✅ Ajout de l'animation (même logique que les autres robots)
           const mixer = new THREE.AnimationMixer(clone);
           clone.userData.mixer = mixer;
           clone.userData.animations = gltf.animations;
@@ -358,7 +409,9 @@ const animate = () => {
   }
 
   if (playerHP == 0 && !gameOver) {  
-    gameOver = true;  
+    gameOver = true;
+    music.pause();  
+    gameOverAudio.play();
     displayGameOver3D();
     setTimeout(resetGame, 5000);
   }
@@ -390,24 +443,28 @@ function updateBullets() {
       if (bulletBox.intersectsBox(enemy.userData.boundingBox) && !deadRobots.includes(enemy)) {
         scene.remove(bullet.mesh);
         bullets.splice(i, 1);
-    
-        attackingRobots = attackingRobots.filter(r => r !== enemy);
-    
-        const deathAudio = new Audio('assets/audio/Lego_Destroy.mp3');
-        deathAudio.play();
 
-        switchAnimation(enemy, 1);
-        deadRobots.push(enemy);
-    
-        const action = enemy.userData.mixer.clipAction(enemy.userData.animations[1]);
-        const animationDuration = action.getClip().duration;
-    
-        setTimeout(() => {
-          objectR.remove(enemy);
-          scene.remove(enemy);
-          deadRobots = deadRobots.filter(r => r !== enemy);
-          nbrRobot -= 1;
-        }, animationDuration * 1000);
+        if (enemy.userData.hp > 1) {
+          enemy.userData.hp--;
+        } else {
+          attackingRobots = attackingRobots.filter(r => r !== enemy);
+      
+          const deathAudio = new Audio('assets/audio/Lego_Destroy.mp3');
+          deathAudio.play();
+
+          switchAnimation(enemy, 1);
+          deadRobots.push(enemy);
+      
+          const action = enemy.userData.mixer.clipAction(enemy.userData.animations[1]);
+          const animationDuration = action.getClip().duration;
+      
+          setTimeout(() => {
+            objectR.remove(enemy);
+            scene.remove(enemy);
+            deadRobots = deadRobots.filter(r => r !== enemy);
+            nbrRobot -= 1;
+          }, animationDuration * 1000);
+        }
       }      
     }
   }
@@ -495,7 +552,7 @@ function displayGameOver3D() {
       const fontLoader = new FontLoader();
       const font = fontLoader.parse(json);
 
-      const textGeo = new TextGeometry('GAME OVER', {
+      const textGeo = new TextGeometry(`GAME OVER\nFail to wave : ${wave}`, {
         font: font,
         size: 0.1,
         depth: 0.02,
@@ -556,7 +613,7 @@ function displayNextWave3D(callback) {
       let countdown = 3;
       
       // ✅ Crée la géométrie initiale
-      let textGeo = new TextGeometry(`Next Wave in : ${countdown}`, {
+      let textGeo = new TextGeometry(`Wave ${wave+1} in : ${countdown}`, {
           font: font,
           size: 0.1,
           depth: 0.02,
@@ -599,7 +656,7 @@ function displayNextWave3D(callback) {
               scene.remove(nextWaveText);
               textGeo.dispose();
 
-              textGeo = new TextGeometry(`Next Wave in : ${countdown}`, {
+              textGeo = new TextGeometry(`Wave ${wave+1} in : ${countdown}`, {
                   font: font,
                   size: 0.1,
                   depth: 0.02,
@@ -636,8 +693,8 @@ function displayNextWave3D(callback) {
 
 // Update Game
 function nextWave() {
-  wave++
-  nbrRobot = wave;
+  wave++;
+  nbrRobot = wave + Math.floor(wave/2);
 
   next = false;
 
@@ -646,13 +703,18 @@ function nextWave() {
   attackingRobots = [];
   deadRobots = [];
 
-  loadRobot('assets/models/RobotExpressive.glb', nbrRobot);
+  loadRobot('assets/models/RobotExpressive.glb', wave);
+  loadMetalRobot('assets/models/RobotExpressive.glb', Math.floor(wave/2));
 }
 
-function resetGame() {  
+function resetGame() {
+  
+  music.currentTime = 0;
+  music.play();
+
   wave = 1;
   playerHP = playerHPmax;
-  nbrRobot = wave;
+  nbrRobot = 1;
 
   gameOver = false;
 
