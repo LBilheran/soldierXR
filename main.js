@@ -17,6 +17,7 @@ import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { TTFLoader } from 'three/addons/loaders/TTFLoader.js';
 import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+import { max } from 'three/tsl';
 
 
 // XR setup
@@ -107,10 +108,10 @@ const init = () => {
   scene.add(circleMesh);
 
   const aspect = window.innerWidth / window.innerHeight;
-  camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 30); // meters
+  camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 30);
   camera.position.set(0, 1.6, 3);
 
-  const light = new THREE.AmbientLight(0xffffff, 1.0); // soft white light
+  const light = new THREE.AmbientLight(0xffffff, 1.0);
   scene.add(light);
 
   const hemiLight = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 3);
@@ -136,16 +137,16 @@ const init = () => {
   const shadowMaterial = new THREE.ShadowMaterial({ opacity: 0.5 });
 
   const shadowPlane = new THREE.Mesh(planeGeometry, shadowMaterial);
-  shadowPlane.rotation.x = -Math.PI / 2; // À plat sur le sol
-  shadowPlane.position.y = 0.02; // Juste au-dessus du sol pour éviter les bugs
+  shadowPlane.rotation.x = -Math.PI / 2;
+  shadowPlane.position.y = 0.02;
 
-  shadowPlane.receiveShadow = true; // Active la réception d'ombres
+  shadowPlane.receiveShadow = true;
   scene.add(shadowPlane);
   
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setAnimationLoop(animate); // requestAnimationFrame() replacement, compatible with XR 
+  renderer.setAnimationLoop(animate);
   renderer.xr.enabled = true;
   document.body.appendChild(renderer.domElement);
   renderer.shadowMap.enabled = true;
@@ -184,14 +185,12 @@ function onWindowResize() {
 }
 
 function setupEventListeners() {
-  // Clic souris (pour desktop)
   window.addEventListener('mousedown', (event) => {
-      if (event.button === 0) { // Clic gauche
+      if (event.button === 0) {
           shootBullet();
       }
   });
 
-  // Sélection AR (pour mobile et casque VR)
   controller.addEventListener('select', shootBullet);
 }
 
@@ -293,7 +292,9 @@ function loadRobot(url, count) {
           clone.lookAt(new THREE.Vector3(0, clone.position.y, 0));
 
           clone.userData.boundingBox = new THREE.Box3().setFromObject(clone);
+          clone.userData.isBoss = false;
           clone.userData.hp = 1;
+          clone.userData.speed = 0.02;
 
           const mixer = new THREE.AnimationMixer(clone);
           clone.userData.mixer = mixer;
@@ -305,6 +306,8 @@ function loadRobot(url, count) {
       }
   });
 }
+
+loadRobot('assets/models/RobotExpressive.glb', nbrRobot);
 
 function loadMetalRobot(url, count) {
   const loader = new GLTFLoader();
@@ -321,28 +324,27 @@ function loadMetalRobot(url, count) {
           const clone = SkeletonUtils.clone(gltf.scene);
           scene.add(clone);
 
-          // ✅ Appliquer une texture métallique aux meshes
           clone.traverse((child) => {
               if (child.isMesh) {
                   child.castShadow = true;
                   child.receiveShadow = true;
                   child.material = new THREE.MeshStandardMaterial({
-                      color: 0x888888,  // ✅ Gris métallique
-                      metalness: 0.8,     // ✅ 100% métallique
-                      roughness: 0.2    // ✅ Un peu brillant
+                      color: 0x888888,
+                      metalness: 0.9,
+                      roughness: 0.2
                   });
               }
           });
 
-          // ✅ Plus gros que les robots classiques
           clone.scale.set(0.5, 0.5, 0.5);
           clone.position.set(posX, posY, posZ);
           clone.lookAt(new THREE.Vector3(0, clone.position.y, 0));
 
           clone.userData.boundingBox = new THREE.Box3().setFromObject(clone);
+          clone.userData.isBoss = false;
           clone.userData.hp = 5;
+          clone.userData.speed = 0.015;
 
-          // ✅ Ajout de l'animation (même logique que les autres robots)
           const mixer = new THREE.AnimationMixer(clone);
           clone.userData.mixer = mixer;
           clone.userData.animations = gltf.animations;
@@ -354,7 +356,54 @@ function loadMetalRobot(url, count) {
   });
 }
 
-loadRobot('assets/models/RobotExpressive.glb', nbrRobot);
+function loadBossRobot(url, count) {
+  const loader = new GLTFLoader();
+  loader.load(url, function (gltf) {
+
+      for (let i = 0; i < count; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const distance = maxRadius;
+          const posX = Math.cos(angle) * distance;
+          const posZ = Math.sin(angle) * distance;
+          const posY = 0;
+
+          const clone = SkeletonUtils.clone(gltf.scene);
+          scene.add(clone);
+
+          clone.traverse((child) => {
+            if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+                child.material = new THREE.MeshStandardMaterial({
+                    color: 0xaa0000,
+                    metalness: 0.9,
+                    roughness: 0.3,
+                    emissive: 0x550000,
+                    emissiveIntensity: 0.5
+                });
+            }
+        });
+        
+
+          clone.scale.set(1, 1, 1);
+          clone.position.set(posX, posY, posZ);
+          clone.lookAt(new THREE.Vector3(0, clone.position.y, 0));
+
+          clone.userData.boundingBox = new THREE.Box3().setFromObject(clone);
+          clone.userData.isBoss = true;
+          clone.userData.hp = 50;
+          clone.userData.speed = 0.005;
+
+          const mixer = new THREE.AnimationMixer(clone);
+          clone.userData.mixer = mixer;
+          clone.userData.animations = gltf.animations;
+          const action = mixer.clipAction(clone.userData.animations[10]);
+          action.play();
+
+          objectR.add(clone);
+      }
+  });
+}
 
 function shootBullet() {
   const bulletGeometry = new THREE.SphereGeometry(0.05, 16, 16);
@@ -478,7 +527,7 @@ function updateEnemies() {
       if (attackingRobots.includes(enemy) || deadRobots.includes(enemy)) continue;
 
       const direction = new THREE.Vector3().subVectors(new THREE.Vector3(0, 0, 0), enemy.position).normalize();
-      enemy.position.addScaledVector(direction, 0.02);
+      enemy.position.addScaledVector(direction, enemy.userData.speed);
 
       if (enemy.position.length() <= minRadius + 0.5) {
           switchAnimation(enemy, 5);
@@ -612,7 +661,6 @@ function displayNextWave3D(callback) {
 
       let countdown = 3;
       
-      // ✅ Crée la géométrie initiale
       let textGeo = new TextGeometry(`Wave ${wave+1} in : ${countdown}`, {
           font: font,
           size: 0.1,
@@ -631,28 +679,24 @@ function displayNextWave3D(callback) {
       const textMaterial = new THREE.MeshPhongMaterial({ color: 0xff7000, flatShading: true });
       let textMesh = new THREE.Mesh(textGeo, textMaterial);
 
-      // ✅ Centre le texte par rapport à lui-même
       const boundingBox = textGeo.boundingBox;
       const center = new THREE.Vector3();
       boundingBox.getCenter(center);
       textGeo.translate(-center.x, -center.y, -center.z);
 
-      // ✅ Positionner le texte devant la caméra UNE SEULE FOIS
       const cameraPosition = camera.position.clone();
       const direction = new THREE.Vector3();
       camera.getWorldDirection(direction);
       textMesh.position.copy(cameraPosition).add(direction.multiplyScalar(1.5));
-      textMesh.quaternion.copy(camera.quaternion); // ✅ Garde la même orientation que la caméra
+      textMesh.quaternion.copy(camera.quaternion);
 
       scene.add(textMesh);
-      nextWaveText = textMesh; // ✅ Stocke le texte pour mise à jour
+      nextWaveText = textMesh;
 
-      // ✅ Mise à jour du texte chaque seconde (sans repositionner)
       const interval = setInterval(() => {
           countdown--;
 
           if (countdown > 0) {
-              // ✅ Supprime seulement la géométrie et met à jour le texte
               scene.remove(nextWaveText);
               textGeo.dispose();
 
@@ -698,10 +742,20 @@ function nextWave() {
 
   next = false;
 
-  objectR.children.forEach(enemy => scene.remove(enemy));
-  objectR.children = [];
-  attackingRobots = [];
+  objectR.children = objectR.children.filter(enemy => {
+    if (!enemy.userData.isBoss) {
+        scene.remove(enemy);
+        return false;
+    }
+    return true;
+  });
+
+  attackingRobots = attackingRobots.filter(robot => robot.userData.isBoss);
   deadRobots = [];
+
+  if (wave % 5 == 0) {
+    loadBossRobot('assets/models/RobotExpressive.glb', 1);
+  }
 
   loadRobot('assets/models/RobotExpressive.glb', wave);
   loadMetalRobot('assets/models/RobotExpressive.glb', Math.floor(wave/2));
