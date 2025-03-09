@@ -41,8 +41,7 @@ export default defineConfig({
         VitePWA({
             registerType: "autoUpdate",
             manifest: {
-              name: "Soldier RealiteAugmente",
-              short_name: "SoldierXR",
+              name: "SodlierXR",
               description: "Defend your base against Robot !",
               theme_color: "#ffffff",
               background_color: "#000000",
