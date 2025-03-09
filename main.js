@@ -17,7 +17,6 @@ import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { TTFLoader } from 'three/addons/loaders/TTFLoader.js';
 import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
-import { max } from 'three/tsl';
 
 
 // XR setup
@@ -100,6 +99,7 @@ const init = () => {
   scene.add(objectM);
   scene.add(objectR);
 
+  // Circle for the base
   const circleGeometry = new THREE.CircleGeometry(minRadius, 64);
   const circleMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
   circleMesh = new THREE.Mesh(circleGeometry, circleMaterial);
@@ -107,10 +107,12 @@ const init = () => {
   circleMesh.position.y = 0.01;
   scene.add(circleMesh);
 
+  // Camera
   const aspect = window.innerWidth / window.innerHeight;
   camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 30);
   camera.position.set(0, 1.6, 3);
 
+  // Lights
   const light = new THREE.AmbientLight(0xffffff, 1.0);
   scene.add(light);
 
@@ -118,6 +120,7 @@ const init = () => {
   hemiLight.position.set(0.5, 1, 0.25);
   scene.add(hemiLight);
 
+  // Shadows
   const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
   dirLight.position.set(5, 10, 5);
   dirLight.castShadow = true;
@@ -133,6 +136,7 @@ const init = () => {
 
   scene.add(dirLight);
 
+  // Plane for the shadow
   const planeGeometry = new THREE.PlaneGeometry(10, 10);
   const shadowMaterial = new THREE.ShadowMaterial({ opacity: 0.5 });
 
@@ -185,12 +189,14 @@ function onWindowResize() {
 }
 
 function setupEventListeners() {
+  // For PC tests
   window.addEventListener('mousedown', (event) => {
       if (event.button === 0) {
           shootBullet();
       }
   });
 
+  // For Phone
   controller.addEventListener('select', shootBullet);
 }
 
@@ -214,6 +220,7 @@ function loadMichelle(url, closeCount, maxRadiusMichelle = minRadius - 0.2) {
           clone.position.set(posX, posY, posZ);
           clone.rotation.y = Math.random() * Math.PI * 2;
 
+          // Animation
           const mixer = new THREE.AnimationMixer(clone);
           clone.userData.mixer = mixer;
           const action = mixer.clipAction(gltf.animations[0]);
@@ -246,6 +253,7 @@ function loadFarMichelle(url, farCount, maxRadiusMichelle = maxRadius - 3, minRa
           clone.position.set(posX, posY, posZ);
           clone.rotation.y = Math.random() * Math.PI * 2;
 
+          // Animation
           const mixer = new THREE.AnimationMixer(clone);
           clone.userData.mixer = mixer;
           const action = mixer.clipAction(gltf.animations[0]);
@@ -296,6 +304,7 @@ function loadRobot(url, count) {
           clone.userData.hp = 1;
           clone.userData.speed = 0.02;
 
+          // Animation
           const mixer = new THREE.AnimationMixer(clone);
           clone.userData.mixer = mixer;
           clone.userData.animations = gltf.animations;
@@ -345,6 +354,7 @@ function loadMetalRobot(url, count) {
           clone.userData.hp = 5;
           clone.userData.speed = 0.015;
 
+          // Animation
           const mixer = new THREE.AnimationMixer(clone);
           clone.userData.mixer = mixer;
           clone.userData.animations = gltf.animations;
@@ -394,6 +404,7 @@ function loadBossRobot(url, count) {
           clone.userData.hp = 50;
           clone.userData.speed = 0.005;
 
+          // Animation
           const mixer = new THREE.AnimationMixer(clone);
           clone.userData.mixer = mixer;
           clone.userData.animations = gltf.animations;
@@ -592,9 +603,10 @@ function damagePlayer() {
   }
 }
 
-
 setInterval(damagePlayer, 2000);
 
+
+// Text display
 function displayGameOver3D() {
   const loader = new TTFLoader();
   loader.load('assets/texte/kenpixel.ttf', (json) => { 

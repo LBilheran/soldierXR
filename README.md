@@ -1,25 +1,20 @@
 # soldierXR
 
-Commande :
-
-```bash
-ngrok http http://localhost:5173
-```
-
-DuckDuckGo : qr url
-
 Robot VS Michelle:
-Add Robots to have a larger group than Michelle's (dancer) group, and blow up your opponent to move to the next size!
-You can turn on music to enjoy the game more!
+Protect Michelle's group (dancer) from the robot invasion!
+Shoot bullets by tapping your screen to defeat the enemies.
+Will you be able to defeat the boss and become the best player by eliminating the most waves?
+You can earn HP by going to the Michelle outside the group but don't forget to protect your base!
 
-Project main objective: GLTF/GLB model instancing.
+Project main objective: GLTF/GLB model instancing & AR game.
 
 Features:
 
+- Interaction
+- Animation
 - Lights and Shadows
 - Controls
-- Background (RGBE)
-- GUI
+- Music/Sound
 
 The game is downloadable on phone!
 
@@ -56,19 +51,31 @@ npm run dev
 
 - Open the following address on a browser (Firefox for example): http://localhost:5173
 
+
+To play on your phone, make sure your phone supports AR then :
+
+- Run :
+```bash
+ngrok http http://localhost:5173
+```
+
+- Transform the url given in the terminal in QR Code with a browser extension or in DuckDuckGo with "qr http://my-url.com" research.
+
+- Scan the QR Code with your phone, go to the website and play !
+
 ## Sources
 
 - Three JS examples:
 
   - Robot, animation and GUI: https://threejs.org/examples/#webgl_animation_skinning_morph
   - Michelle and instancing: https://threejs.org/examples/?q=inst#webgpu_skinning_instancing
-  - JSON and instancing: https://threejs.org/examples/?q=inst#webgpu_instance_mesh
   - Lights and Shadows: https://threejs.org/examples/?q=light#webgl_lights_hemisphere
-  - Background (RGBE): https://threejs.org/examples/#webgl_materials_cubemap_dynamic
 
 - Musique: Age of War (Video Game)
+- Robot Death Sound : Lego (Video Game) 
+- 1UP Sound : Mario Bros (Nintendo)
 
 ## Thanks
 
-I would like to thank my teacher, Fivos Doganis, for this course and this WEB 3D project.
+I would like to thank my teacher, Fivos Doganis, for this course and this WEB XR project.
 Thanks for all the people who created the Three JS examples and models.

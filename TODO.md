@@ -1,0 +1,8 @@
+- [ ] Create a ranking system between players
+- [ ] Define upgrade (more HP, better defense, upgrade weapon, automatic turret...)
+- [ ] Add upgrade choices to make at the end of each wave
+- [ ] Adjust the difficulty curve
+- [ ] Create a money system for the different upgrade
+- [ ] Add a weapon model in front of the player
+- [ ] Create a menu with a play button and the ranking 
+- [ ] Add a shop with skins for Robot, Michelle, ball, weapon ...
