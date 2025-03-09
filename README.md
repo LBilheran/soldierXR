@@ -22,7 +22,7 @@ The game is downloadable on phone!
 
 Results: https://lbilheran.github.io/soldierXR/
 
-![Alt text](./public/assets/images/robot-144.png?raw=true "Result")
+![Alt text](./public/assets/images/soldierXR_game.png?raw=true "Result")
 
 ## Phone installation
 

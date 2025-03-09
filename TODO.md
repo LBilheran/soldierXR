@@ -1,4 +1,5 @@
 - [ ] Create a ranking system between players
+- [ ] Improve Render
 - [ ] Define upgrade (more HP, better defense, upgrade weapon, automatic turret...)
 - [ ] Add upgrade choices to make at the end of each wave
 - [ ] Adjust the difficulty curve
